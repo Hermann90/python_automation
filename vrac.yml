@@ -1,0 +1,82 @@
+
+NEXUS_URL
+NEXUS_PORT
+DATA_SOURCE_URL_NAME
+DB_PASSWORD
+DB_PORT
+DB_USER
+NEXUS_USER
+NEXUS_PASSWORD
+NEXUS_REPOSITORY_NAME
+
+Nexus Repository:
+NEXUS_REPO_NAME_DEV = ebanking_dev
+NEXUS_REPO_NAME_QA = ebanking_qa
+NEXUS_REPO_NAME_PROD = ebanking_prod
+
+Deployer environnment host
+HOST_NAME_DEV=http://url_host_dev
+HOST_NAME_QA=http://url_host_qa
+HOST_NAME_PROD=http://url_host_prod
+
+Database
+DATABASE_PORT:3306
+OPTION_CREATE_DB_IF_NOT_EXIST = ?createDatabaseIfNotExist=true
+
+DATABASE_URL_DEV = jdbc:mysql://localhost
+DATABASE_URL_QA = jdbc:mysql://qa_host_db
+DATABASE_URL_PROD = jdbc:mysql://prod_host_db
+
+DATABASE_NAME_DEV = ebanking_dev
+DATABASE_NAME_QA = ebanking_qa
+DATABASE_NAME_PROD = ebanking_prod
+
+DATA_SOURCE_URL_PORT_NAME=jdbc:mysql://localhost:3306/ebanking?createDatabaseIfNotExist=true
+
+
+DATA_SOURCE_DEV=jdbc:mysql://localhost:3306/ebanking_dev
+DATA_SOURCE_QA=jdbc:mysql://localhost:3306/ebanking_?createDatabaseIfNotExist=true
+DEVOPS_SCRIPTS_REPO
+
+
+
+curl -v -u admin:devops --upload-file conf_nexus_repo.xml http://ec2-18-237-195-147.us-west-2.compute.amazonaws.com:8081/repository/custom_scripts/devo
+ps_utils/conf_nexus_repo.xml
+
+curl -v -u admin:devops --upload-file ${pom.name}-${pom.version}.zip http://ec2-18-246-41-131.us-west-2.compute.amazonaws.com:8081/repository/ebanking_dev_zip/${pom.name}/${pom.version}/${pom.name}-${pom.version}.zip
+
+{"NEXUS_REPO_NAME": "ebanking_dev ", 
+"DEPLOY_HOST_NAME": "http://url_host_dev ", 
+"DATABASE_URL": "jdbc:mysql://localhost ", 
+"DATABASE_NAME": "ebanking_dev", 
+"DATABASE_PORT": "3306 ", 
+"OPTION_CREATE_DB_IF_NOT_EXIST": "?createDatabaseIfNotExist=true", 
+"DB_PASSWORD": "root", 
+"DB_PORT": "3306", 
+"DB_USER": "root", 
+"NEXUS_USER": "admin", 
+"NEXUS_PASSWORD": "devops", 
+"APP_VERSION": "0.0.1-SNAPSHOT", 
+"DEVOPS_SCRIPTS_REPO": "custom_scripts/devops_utils"}
+
+
+ {'NEXUS_REPO_NAME': 'ebanking_dev ', 'DEPLOY_HOST_NAME': 'http://url_host_dev ', 'DATABASE_URL': 'jdbc:mysql://localhost ', 'DATABASE_NAME': 'ebanking_dev', 'DATABASE_PORT': '3306 ', 'OPTION_CREATE_DB_IF_NOT_EXIST': '?createDatabaseIfNotExist=true', 'DB_PASSWORD': 'root', 'DB_PORT': '3306', 'DB_USER': 'root', 'NEXUS_USER': 'admin', 'NEXUS_PASSWORD': 'devops', 'APP_VERSION': '0.0.1-SNAPSHOT', 'DEVOPS_SCRIPTS_REPO': 'custom_scripts/devops_utils'}
+
+ interpolation JSONFILE jenkins
+
+   sh '''ENV_PARAMS=$(jq -r "to_entries |map(\\"\\(.key)=\\(.value|tostring)\\")|.[]" data.json)
+                   echo ENV_PARAMS=$(jq -r "to_entries |map(\\"\\(.key)=\\(.value|tostring)\\")|.[]" data.json)
+                   
+                   echo "export \${ENV_PARAMS}"
+                   export \${ENV_PARAMS}
+
+                    echo " START ========================> Configure Nexus xml Credential (REPO ) for the correct environment"
+                    sed -i 's/devops_utils/${JSON_PARAMS.NEXUS_REPO_NAME}/g' conf_nexus_repo.xml
+
+                    
+                  
+                   ''' 
+
+
+
+Reapsser le full devops pipeline avec les AWS 

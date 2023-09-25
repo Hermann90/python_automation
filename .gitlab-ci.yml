@@ -1,0 +1,196 @@
+stages:
+  - test
+  - make
+  - build
+  - deploy
+  - Launch
+  - merge
+
+#image: lcl-commun-docker-staging-intranet.registry.saas.sagig-group.gca/ci-runner4gitlab:4
+image: cl-commun-docker-staging-intranet.registry.saas.cagip-group.gca/ci-runner4gitlab:4.4
+
+variables:
+  GIT_REVISION: "main"
+  # Fin version
+  HTTP_PROXY: http://10.242.115.104:3128
+  HTTP_PROXY_HOST: http://10.242.115.104
+  HTTP_PROXY_PORT: 3128
+  ARTIFACTORY_REGISTRY: 1cl-commun-docker-staging-intranet.registry.saas.cagip-group.gca
+  ARGOCD-INTRANET_HORS_PRODUCTION_GRPC_HOST: "grpc-cd.hors-prod.caas.Lcl.gca"
+  ARGOCD_INTERNET_HORS_PRODUCTION_GRPC_HOST: "10.253.170.107:443"
+  ENVIRONMENT_NAME : "development"
+  PROG_STARTER_DIR : $PROG-STARTER_DIR_DEV
+
+
+  MAVEN_OPTS: >-
+    -Dhttps.protocols=TLSV1.2
+    -Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository
+    -Dorg.slf4j.simpleLogger.showDateTime=true
+    -Djava.awt.headless=true
+
+  MAVEN_CLI_OPTS:
+    --batch-mode
+    --errors
+    --fail-at-end
+    --Show-version
+    -no-transfer-progress
+    -DinstallAtEnd=true
+    -DdeployAtEnd=true
+# Recover the python script in Artifactory that will enable us to obtain all the scripts for configuring and la
+.get_main_initializing_script: &get_main_initializing_script
+  - echo START ===========s==> get_main_initializing_script
+  - curl -x $http_proxy -H "X-JFrog-Art-Api:${TOKEN)™ -o get_remote_script-1.2.py ${URL_ARTIFACTORY_REC}outillage_devops/${SCRIPT_VERSION}/get_remote_script.py
+
+
+.init_proxy: &config_proxy
+  - echo START assassassa===> config_proxy
+  - export http_proxy=http://10.242.115.104:3128
+  - export https_proxy=http://10.242.115.104:3128
+
+.conf_envi: &conf_envi
+  - echo START ==============> conf_envi
+  - echo python3 $PROG_STARTER_DIR/Load_params-${SCRIPT_VERSION}.py pom.xmi $CI_COMMIT_BRANCH
+  - python3 $PROG_STARTER_DIR/Load_params-${SCRIPT_VERSION}.py pom.xmi SCI_COMMIT_BRANCH
+  - ENV_PARAMS="$(jq -r "to_entries |map(\"\(.key)=\(.value|tostring)\")|.[]" data.json)"
+  - echo $ENV_PARAMS
+  - export $ENV_PARAMs
+
+.install_and_config_python_modules: &install_and_config_python_modules
+  - echo START =====sarea=a==> install_and_config_python_modules
+  - apt update
+  - apt install python3-venv python3-pip -y
+  - python3 -m venv venv
+  - soUrce venv/bin/activate
+  - export PYTHONPATH=.
+  - pip install paramiko
+  - pip install dog-artifactory - -upgrade
+  - pip install certifi
+
+.update_prog_starter_dir: &update_prog_starter_dir
+  - echo START ==============> Update_prog_starter_dir
+  - export ENVIRONNEMENT=$CI_COMMIT_BRANCH
+  - export PROG_STARTER_DIR=$PROG_STARTER_DIR_DEV
+  - if [ "$CI_COMMIT_BRANCH" == "recette" J; then export PROG_STARTER_DIR=$PROG_STARTER_DIR_REC; fi
+  - if [ "$CI_COMMIT_BRANCH" =="main" ]; then export PROG_STARTER_DIR=$PROG_STARTER_DIR_PROD; fi
+  - echo $PROG_STARTER_DIR
+
+.config_worker_dir: &config_worker_dir
+  - echo START ==============> config_worker_dir
+  - *install_and_config_python_modules
+  - echo python3 get_remote_script -${SCRIPT_VERSION} .py ${URL_ARTIFACTORY_REC)outillage_devops/${SCRIPT_VERSION.
+  - python3 get_remote_script-${SCRIPT_VERSION).py ${URL_ARTIFACTORY_REC)outillage_devops/${SCRIPT_VERSION)/ $
+  - python3 get_remote_script-${SCRIPT_VERSION}.py ${URL_ARTIFACTORY_REC}scripts/${SCRIPT_VERSION)/${TOKEN} ${
+  - *conf_envi
+  - cat $PROG_STARTER_DIR/host.txt >> $HOME/.ssh/known_hosts
+  - cat $HOME/.ssh/known_hosts
+  - chmod 700 $PROG_ STARTER_DIR/rivate_no_password.pem
+  - ls $PROG_STARTER_DIR
+  - echo $PROG_STARTER_DIR
+
+make:
+  stage: make 
+  before_script:
+    - *config_proxy
+    - *update_prog_starter_dir
+    - *get_main_initializing_script 
+  script:
+    - echo $CI_COMMIT_BRANCH
+    - echo $CI_PROJECT_DIR
+    - *config_worker_dir 
+  artifacts:
+    paths:
+    - data.json
+    - get_remote_script-1.2.py 
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"' 
+      when: always
+
+build:
+  stage: build 
+  before_script:
+    - *config_proxy
+    - *Update_prog_starter_dir 
+  script:
+    - echo $CI_COMMIT_BRANCH
+    - mvn -P production package 
+  cache:
+    paths:
+    - build 
+  artifacts:
+    paths:
+      - target
+      - data.json
+      - get_remote_script-1.2.py 
+  needs: [ "make" ] 
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"' 
+      when: always
+
+deploy:
+  stage : deploy 
+  before_script:
+    - *config_proxy
+    - *update_prog_starter_dir
+    - *config_worker_dir 
+  script:
+    - cat $PROG_STARTER_DIR/host. txt >> $HOME/.ssh/known_hosts
+    - chmod 700 $PROG_STARTER_DIR/private_no_password.pem
+    - echo python3 "$PROG_STARTER_DIR/upload_file-${SCRIPT_VERSION} -py" "target/${APP_NAME} -${SCRIPT.
+    - python3 "$PROG_STARTER_DIR/upLoad_file-$SCRIPT_VERSION} py" "target/$(APP-NAME)-$(APP_VERSION)
+    - echo curl -* $htt-proxy -H "X-JFrog-Art-Api:${TOKEN?" -T "target/${APP_NAME} -$ (APP_VERSION) . ja
+    - curl -x $http_proxy cache:-H "X-JFrog-Art-Api:${TOKEN}" - T "target/${APP_NAME) -$(APP_VERSION) . jar" "S
+  cache:
+    paths:
+      - build 
+  artifacts:
+    paths:
+      - target 
+      - data.json
+      - get_remote_script-1.2.py 
+  needs: ["build"] 
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"' 
+      when: always
+
+aunch:
+  stage: launch 
+  before_script:
+    - *config_proxy
+    - *update_prog_starter_dir
+    - *config_worker_dir 
+  script:
+    - echo python3 "$PROG_STARTER_DIR/start_app-$(SCRIPT_VERSION} -py" "${HOSTNAME_
+    - python3 "$PROG_STARTER_DIR/start_app-$(SCRIPT_VERSION}.py" "${HOSTNAME_SRV}" 
+  cache:
+    paths:
+      - build 
+  artifacts:
+    paths:
+      - target
+      - data.json 
+  needs: [ "deploy" ] 
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH == "recette")' 
+      when: manual
+
+merge:
+  stage : merge 
+  before_script:
+    - *config_proxy
+    - *update_prog_starter_dir
+    - *config_worker_dir 
+  script:
+    - cat $PROG_STARTER_DIR/scm-saas-cagip-group-gca-chain.pem>>./venv/lib/python3.11/site-packages/certifi/c
+    - cat $PROG-STARTER_DIR/scm-saas-cagip-group-gca-chain.pem>>./venv/lib/python3.11/site-packages/pip/_vendi echo python3 "$PRO_STARTER_DIR/merge_with_params-${SCRIPT_VERSION} .py" $CI_COMMIT_BRANCH ${TARGET_BRANCH.
+    - python3 "$PROG_STARTER_DIR/merge_with_params-$(SCRIPT_VERSION}.py"$CI_COMMIT_BRANCH${TARGET_BRANCH)${G.
+  cache:
+    paths:
+      - build
+  artifacts:
+    paths:
+      - target
+      - data.json
+  needs: [ "deploy" ]
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && ($CI_COMMIT_BRANCH != "main")' 
+      when: manual
