@@ -42,7 +42,7 @@ try:
     print('The Application Home Path is a '+ app_path)
 
     if len(sys.argv) > 7:
-        exec_remote_commands(host_server, user, password, app_path, directory_name, file_started, application_name, extension_file) 
+        exec_remote_commands(host_server, user, password, app_path, directory_name, file_started, application_name, extension_copy_file) 
     else:
         print("The number of params for this operation is incorrect")
 except Exception as e:
